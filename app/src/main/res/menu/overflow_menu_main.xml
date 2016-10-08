@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:compat="http://schemas.android.com/apk/res-auto" >
+
+    <group android:checkableBehavior="all">
+        <item
+            android:id="@+id/menu_stop"
+            android:orderInCategory="1"
+            compat:showAsAction="never"
+            android:checked="true"
+            android:title="@string/menu_stop_song"/>
+
+        <item
+            android:id="@+id/menu_start"
+            android:orderInCategory="2"
+            compat:showAsAction="never"
+            android:title="@string/menu_play_song"/>
+    </group>
+
+    <item
+        android:id="@+id/menu_about"
+        android:orderInCategory="3"
+        compat:showAsAction="never"
+        android:title="@string/menu_about"/>
+</menu>
