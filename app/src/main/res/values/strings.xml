@@ -12,4 +12,5 @@
     <string name="dialog_about_message">App version v0.5\n\nCoded by Adam Kadar @ kadaradam\n2016</string>
     <string name="dialog_about_button">Cancel</string>
     <string name="music_stop_time">Music will %1$s at %2$s</string>
+    <string name="countdown_text">Time left: %1$02d:%2$02d:%3$02d</string>
 </resources>

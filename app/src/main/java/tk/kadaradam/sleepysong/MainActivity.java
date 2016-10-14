@@ -3,9 +3,9 @@ package tk.kadaradam.sleepysong;
 import android.app.ActivityManager;
 import android.content.BroadcastReceiver;
 import android.content.Context;
-import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.os.CountDownTimer;
 import android.support.v4.content.ContextCompat;
 import android.support.v4.content.LocalBroadcastManager;
 import android.support.v7.app.AlertDialog;
@@ -30,16 +30,21 @@ public class MainActivity extends AppCompatActivity {
     public static Intent serviceIntent;
     public static BroadcastReceiver receiver;
 
-    public static Button toggleButton;
-    public static SeekBar timeSlider;
-    public static TextView progressText;
-    public static TextView statusText;
-    public static MenuItem stopCheckBox;
-    public static MenuItem startCheckBox;
+    public Button toggleButton;
+    public SeekBar timeSlider;
+    public TextView progressText;
+    public TextView countdownTime;
+    public TextView statusText;
+    public MenuItem stopCheckBox;
+    public MenuItem startCheckBox;
+
+    public long unix_TimeAppFinish;
 
     public static int countDownTime;
     public static boolean serviceState = false;
     public static boolean musicAction = ACTION_PAUSE;
+
+    public CountDownTimer Timer;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -52,6 +57,7 @@ public class MainActivity extends AppCompatActivity {
         timeSlider      = (SeekBar) findViewById(R.id.timeSlider);
         progressText    = (TextView) findViewById(R.id.progressText);
         statusText      = (TextView) findViewById(R.id.statusText);
+        countdownTime   = (TextView) findViewById(R.id.countdownTime);
 
 
         progressText.setText(String.format(getString(R.string.app_count_minutes), MIN_TIME));
@@ -94,10 +100,22 @@ public class MainActivity extends AppCompatActivity {
 
                     timeSlider.setEnabled(false);
 
+                    progressText.setVisibility(View.INVISIBLE);
+                    timeSlider.setVisibility(View.INVISIBLE);
+
+                    countdownTime.setVisibility(View.VISIBLE);
+
                     // Start the service
                     serviceIntent.putExtra(SERVICE_INTERVAL_KEY, timeSlider.getProgress());
                     serviceIntent.putExtra(SERVICE_STATE_KEY, musicAction);
                     startService(serviceIntent);
+
+                    // Start the countdown
+                    startCountdownTimer(timeSlider.getProgress() * 60);
+
+                    // Store the time, when the service is going to finish
+                    unix_TimeAppFinish = (System.currentTimeMillis() / 1000) + (timeSlider.getProgress() * 60);
+
                 }else{
                     statusText.setTextColor(ContextCompat.getColor(getApplicationContext(), R.color.colorRED));
                     statusText.setText      (R.string.app_disabled);
@@ -105,8 +123,17 @@ public class MainActivity extends AppCompatActivity {
 
                     timeSlider.setEnabled(true);
 
+                    progressText.setVisibility(View.VISIBLE);
+                    timeSlider.setVisibility(View.VISIBLE);
+
+                    countdownTime.setVisibility(View.INVISIBLE);
+
                     // Stop the service
                     stopService(serviceIntent);
+
+                    // Stop the countdown
+                    if(Timer != null)
+                        Timer.cancel();
                 }
 
             }
@@ -116,14 +143,36 @@ public class MainActivity extends AppCompatActivity {
         startNotifyUIReciever();
     }
 
+    private void startCountdownTimer(int seconds) {
+
+        Timer = new CountDownTimer(seconds * 1000, 1000) {
+
+            public void onTick(long millisUntilFinished) {
+
+                int totalSeconds = (int)millisUntilFinished / 1000;
+
+                countdownTime.setText(String.format(getString(R.string.countdown_text), totalSeconds / 3600, (totalSeconds % 3600) / 60, totalSeconds % 60));
+            }
+            public void onFinish() {
+            }
+
+        }.start();
+    }
+
     @Override
     protected void onStart() {
         super.onStart();
 
-		// Checking if our service is running, if not we'll reset the UI. We need this, because if the user is multitasking
+        // Checking if our service is running, if not we'll reset the UI. We need this, because if the user is multitasking
 		// while the music stops, and reopens our app the UI won't reseted.
         if(!isMusicServiceRunning()){
             resetUI();
+        }
+        else
+        {
+            // Reset the countdown if the service is still running
+            long secondsLeft = unix_TimeAppFinish - (System.currentTimeMillis() / 1000);
+            startCountdownTimer((int)secondsLeft);
         }
 
         // Starting the receiver when the user opens the app or reopens the minimized app
@@ -136,6 +185,11 @@ public class MainActivity extends AppCompatActivity {
     protected void onStop() {
         // Stopping the receiver when the user minimizes the app
         LocalBroadcastManager.getInstance(this).unregisterReceiver(receiver);
+
+        // Stop the countdown
+        if(Timer != null)
+            Timer.cancel();
+
         super.onStop();
     }
 
@@ -215,8 +269,16 @@ public class MainActivity extends AppCompatActivity {
 
         timeSlider.setEnabled(true);
 
+        progressText.setVisibility(View.VISIBLE);
+        timeSlider.setVisibility(View.VISIBLE);
+
+        countdownTime.setVisibility(View.INVISIBLE);
+
         serviceState = false;
         countDownTime = 0;
+
+        if(Timer != null)
+            Timer.cancel();
     }
 
     // A simple check if our music service is active
